@@ -1,4 +1,4 @@
-# Pegboard Mapper — by Pegzel
+# Pegboard Mapper
 
 **Convert images into binary pegboard patterns.**
 
@@ -91,11 +91,11 @@ These screenshots demonstrate **Pegboard Mapper's generated binary interpretatio
 - **Barack Obama “HOPE”** — original poster artwork by Shepard Fairey (2008), based on a photograph by Mannie Garcia.
 - **Mario, Luigi and Yoshi** — characters associated with Nintendo. The specific source-sprite illustrators have not been identified.
 
-The Pegzel project is independent and is not affiliated with or endorsed by any of these rights holders. Its software licence does not grant rights in third-party characters or source imagery.
+This software is independent and is not affiliated with or endorsed by any of these rights holders. Its software licence does not grant rights in third-party characters or source imagery.
 
 ## Project and releases
 
-**Pegzel** is the name of the repository/project; **Pegboard Mapper** is the name of the application.
+**Pegboard Mapper** is the application name. The GitHub repository name is a source-code location, not part of the application's branding.
 
 This is an experimental image-to-pegboard conversion tool. The Python and browser interfaces may differ in details of filtering and colour conversion. Please report defects and suggestions using GitHub Issues.
 

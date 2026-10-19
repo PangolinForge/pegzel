@@ -6,7 +6,10 @@ Optional: tkinterdnd2 for image drag-and-drop.
 
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, colorchooser
+import csv
+import json
+from collections import Counter
 from PIL import Image, ImageTk, ImageOps, ImageDraw, ImageFilter, ImageEnhance
 
 # Optional drag/drop support
@@ -20,6 +23,7 @@ except Exception:
 
 BOARD_W = 78
 BOARD_H = 44
+DEFAULT_PALETTE = ['#151515', '#ffffff', '#d62828', '#2673c9', '#f4ca39', '#329a58', '#ec8531', '#8654b3', '#d581ac', '#845b3a', '#5ab7af', '#949aa0', '#9aaa3b', '#b84660', '#424b91', '#69c4a8', '#e1b57a', '#a55033', '#5b7343', '#ddddda']
 
 DEFAULT_THRESHOLD = 128
 DEFAULT_INVERT = False
@@ -100,6 +104,12 @@ class PegboardApp:
         self.channel_var = tk.StringVar(value="Luminance")
         self.tool_var = tk.StringVar(value="Pan")
         self.manual_edits = {}
+        self.width_var = tk.IntVar(value=BOARD_W)
+        self.height_var = tk.IntVar(value=BOARD_H)
+        self.output_mode = tk.StringVar(value='Binary')
+        self.colours_var = tk.IntVar(value=6)
+        self.paint_var = tk.IntVar(value=1)
+        self.palette = DEFAULT_PALETTE.copy()
         self._pending_resize = None
 
         self.build_ui()
@@ -131,7 +141,9 @@ class PegboardApp:
         tk.Button(top, text="Clear Edits", command=self.clear_edits).pack(side="left", padx=(8, 0))
         tk.Button(top, text="Reset View", command=self.reset_view).pack(side="left", padx=(8, 0))
         tk.Button(top, text="Export Peg Preview PNG", command=self.export_preview).pack(side="left", padx=(8, 0))
-        tk.Button(top, text="Export 0/1 Grid TXT", command=self.export_grid_txt).pack(side="left", padx=(8, 0))
+        tk.Button(top, text="Export Grid TXT", command=self.export_grid_txt).pack(side="left", padx=(8, 0))
+        tk.Button(top, text="Export CSV", command=self.export_csv).pack(side="left", padx=(8, 0))
+        tk.Button(top, text="Export JSON", command=self.export_json).pack(side="left", padx=(8, 0))
 
         tk.Label(top, text="Zoom", bg="#e9e9e9").pack(side="left", padx=(18, 6))
         self.zoom_slider = tk.Scale(
@@ -213,6 +225,22 @@ class PegboardApp:
                       command=lambda _: self.update_all()).pack(side="left")
         tk.Label(controls, text="Tool", bg="#e9e9e9").pack(side="left")
         tk.OptionMenu(controls, self.tool_var, "Pan", "Pen", "Eraser").pack(side="left")
+
+        config = tk.Frame(self.root, bg="#e9e9e9")
+        config.pack(fill="x", padx=10, pady=(0, 7))
+        tk.Label(config, text="Columns", bg="#e9e9e9").pack(side="left")
+        tk.Spinbox(config, from_=1, to=200, textvariable=self.width_var, width=5).pack(side="left")
+        tk.Label(config, text="Rows", bg="#e9e9e9").pack(side="left")
+        tk.Spinbox(config, from_=1, to=200, textvariable=self.height_var, width=5).pack(side="left")
+        tk.Button(config, text="Apply dimensions", command=self.apply_dimensions).pack(side="left", padx=(5, 12))
+        tk.Label(config, text="Output", bg="#e9e9e9").pack(side="left")
+        tk.OptionMenu(config, self.output_mode, "Binary", "Colour", command=lambda _: self.clear_edits()).pack(side="left")
+        tk.Label(config, text="Colours", bg="#e9e9e9").pack(side="left")
+        tk.Spinbox(config, from_=1, to=20, textvariable=self.colours_var, width=4).pack(side="left")
+        tk.Button(config, text="Apply palette", command=self.clear_edits).pack(side="left", padx=4)
+        tk.Label(config, text="Paint index", bg="#e9e9e9").pack(side="left")
+        tk.Spinbox(config, from_=1, to=20, textvariable=self.paint_var, width=4).pack(side="left")
+        tk.Button(config, text="Choose colour", command=self.choose_colour).pack(side="left", padx=4)
 
         middle = tk.Frame(self.root, bg="#e9e9e9")
         middle.pack(fill="both", expand=True, padx=10, pady=(0, 8))
@@ -498,10 +526,96 @@ class PegboardApp:
         crop = backing.crop((int(rx1), int(ry1), int(rx2), int(ry2)))
         return crop
 
+    def apply_dimensions(self):
+        global BOARD_W, BOARD_H
+        try:
+            width, height = int(self.width_var.get()), int(self.height_var.get())
+        except (ValueError, tk.TclError):
+            messagebox.showerror("Dimensions", "Use whole numbers for width and height.")
+            return
+        if not (1 <= width <= 200 and 1 <= height <= 200):
+            messagebox.showerror("Dimensions", "Width and height must each be between 1 and 200.")
+            return
+        BOARD_W, BOARD_H = width, height
+        self.manual_edits.clear()
+        self.update_all()
+
+    def colour_palette(self):
+        try:
+            count = max(1, min(20, int(self.colours_var.get())))
+        except (ValueError, tk.TclError):
+            count = 6
+        return [tuple(int(code[k:k+2], 16) for k in (1, 3, 5)) for code in self.palette[:count]]
+
+    def choose_colour(self):
+        try:
+            index = int(self.paint_var.get())
+        except (ValueError, tk.TclError):
+            return
+        if not (1 <= index <= len(self.colour_palette())):
+            messagebox.showinfo("Peg colour", "Select a paint index within the active palette.")
+            return
+        selected = colorchooser.askcolor(color=self.palette[index - 1])[1]
+        if selected:
+            self.palette[index - 1] = selected
+            self.update_all()
+
+    def export_csv(self):
+        grid = self.make_binary_grid()
+        if grid is None:
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV", "*.csv")])
+        if path:
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerows(grid)
+
+    def export_json(self):
+        grid = self.make_binary_grid()
+        if grid is None:
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON", "*.json")])
+        if path:
+            data = {
+                "format": "pegzel-grid-v2",
+                "width": BOARD_W,
+                "height": BOARD_H,
+                "mode": "color" if self.output_mode.get() == "Colour" else "binary",
+                "palette": self.palette[:len(self.colour_palette())] if self.output_mode.get() == "Colour" else ["#151515"],
+                "grid": grid,
+                "counts": [sum(1 for row in grid for value in row if value == i)
+                           for i in range((len(self.colour_palette()) if self.output_mode.get() == "Colour" else 1) + 1)]
+            }
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+
     def make_binary_grid(self):
         crop = self.get_board_crop_from_view()
         if crop is None:
             return None
+
+        if self.output_mode.get() == "Colour":
+            palette = self.colour_palette()
+            colour_source = crop.convert("RGB").resize((BOARD_W, BOARD_H), Image.Resampling.LANCZOS)
+            if self.blur_var.get():
+                colour_source = colour_source.filter(ImageFilter.GaussianBlur(self.blur_var.get()))
+            if self.contrast_var.get() != 1:
+                colour_source = ImageEnhance.Contrast(colour_source).enhance(self.contrast_var.get())
+            result = []
+            for y in range(BOARD_H):
+                row = []
+                for x in range(BOARD_W):
+                    pixel = colour_source.getpixel((x, y))
+                    lum = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
+                    occupied = lum < self.threshold_var.get()
+                    if self.invert_var.get():
+                        occupied = not occupied
+                    if occupied:
+                        distances = [sum((pixel[c] - entry[c]) ** 2 for c in range(3)) for entry in palette]
+                        row.append(distances.index(min(distances)) + 1)
+                    else:
+                        row.append(0)
+                result.append(row)
+            return self.apply_manual_edits(result)
 
         mode = self.channel_var.get()
         if mode == "Red":
@@ -564,7 +678,7 @@ class PegboardApp:
         x = int((event.x - PREVIEW_MARGIN) / PREVIEW_CELL)
         y = int((event.y - PREVIEW_MARGIN) / PREVIEW_CELL)
         if 0 <= x < BOARD_W and 0 <= y < BOARD_H:
-            self.manual_edits[(x, y)] = 1 if tool == "Pen" else 0
+            self.manual_edits[(x, y)] = (min(max(1, int(self.paint_var.get())), len(self.colour_palette())) if self.output_mode.get() == "Colour" else 1) if tool == "Pen" else 0
             self.render_preview()
 
     def clear_edits(self):
@@ -602,12 +716,12 @@ class PegboardApp:
                         width=1
                     )
 
-                if grid[y][x] == 1:
+                if grid[y][x] > 0:
                     peg_count += 1
                     self.preview_canvas.create_oval(
                         x1, y1, x2, y2,
-                        fill="#111111",
-                        outline="#111111"
+                        fill=self.palette[grid[y][x] - 1] if self.output_mode.get() == "Colour" else "#111111",
+                        outline=self.palette[grid[y][x] - 1] if self.output_mode.get() == "Colour" else "#111111"
                     )
 
         total = BOARD_W * BOARD_H
@@ -651,8 +765,9 @@ class PegboardApp:
                 if self.show_holes_var.get():
                     draw.ellipse(bbox, outline=(211, 211, 211), width=1)
 
-                if grid[y][x] == 1:
-                    draw.ellipse(bbox, fill=(17, 17, 17), outline=(17, 17, 17))
+                if grid[y][x] > 0:
+                    paint = self.colour_palette()[grid[y][x] - 1] if self.output_mode.get() == "Colour" else (17, 17, 17)
+                    draw.ellipse(bbox, fill=paint, outline=paint)
 
         img.save(path)
         messagebox.showinfo("Saved", f"Saved preview PNG:\n{path}")
@@ -673,7 +788,10 @@ class PegboardApp:
         with open(path, "w", encoding="utf-8") as f:
             f.write(f"{BOARD_W}x{BOARD_H}\n\n")
             for row in grid:
-                f.write("".join(str(v) for v in row) + "\n")
+                if self.output_mode.get() == "Colour":
+                    f.write(" ".join(f"{v:02d}" for v in row) + "\n")
+                else:
+                    f.write("".join(str(v) for v in row) + "\n")
 
         messagebox.showinfo("Saved", f"Saved 0/1 grid:\n{path}")
 

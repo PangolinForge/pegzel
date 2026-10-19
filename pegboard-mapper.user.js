@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Pegboard Mapper — by Pegzel
 // @namespace    pegzel
-// @version      1.9.1
+// @version      1.9.2
 // @description  Image-to-pegboard converter and binary pegboard pattern generator.
 // @match        *://*/*
 // @grant        GM_registerMenuCommand
+// @updateURL    https://raw.githubusercontent.com/penguin-zoo/pegzel/main/pegboard-mapper.user.js
+// @downloadURL  https://raw.githubusercontent.com/penguin-zoo/pegzel/main/pegboard-mapper.user.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -39,7 +41,7 @@
       @media(max-width:850px){main{grid-template-columns:1fr;overflow:auto}section{min-height:320px}}
     `});
     const app=$('div',root,{className:'app'}), head=$('header',app);
-    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • 78 × 44 • v1.9.1'});
+    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • 78 × 44 • v1.9.2'});
     const close=$('button',head,{textContent:'Close'}); close.onclick=()=>{host.remove();host=null};
     const bar=$('div',app,{className:'tools'});
     const file=$('input',bar,{type:'file',accept:'image/*'});file.style.display='none';

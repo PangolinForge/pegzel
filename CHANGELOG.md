@@ -1,5 +1,8 @@
 # Changelog
 
+## Browser — v1.9.2
+- Added GitHub update/download metadata for Tampermonkey auto-update checks.
+
 ## Browser — v1.9.1
 - Renamed the application **Pegboard Mapper — by Pegzel**.
 - Retained explicit Tampermonkey menu-based launch, avoiding automatic website takeovers.

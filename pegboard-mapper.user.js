@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pegboard Mapper — by Pegzel
 // @namespace    pegzel
-// @version      2.0.0
+// @version      2.0.1
 // @description  Image-to-pegboard converter and binary pegboard pattern generator.
 // @match        *://*/*
 // @grant        GM_registerMenuCommand
@@ -19,11 +19,12 @@
   const palette = ['#151515','#ffffff','#d62828','#2673c9','#f4ca39','#329a58','#ec8531','#8654b3','#d581ac','#845b3a','#5ab7af','#949aa0','#9aaa3b','#b84660','#424b91','#69c4a8','#e1b57a','#a55033','#5b7343','#ddddda'];
   const rgb = hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
   let source, preview, sourceCtx, previewCtx, output, status;
+  let resizeObserver=null, imageLoadToken=0;
   const ui = {};
   const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
   const $ = (tag,parent,attrs={}) => { const n=document.createElement(tag); Object.assign(n,attrs); parent.appendChild(n); return n; };
   function start() {
-    if (host) { host.remove(); host=null; return; }
+    if (host) { closeApp(); return; }
     host=document.createElement('div');
     host.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#eceff2;color:#202632;font:13px system-ui,Arial,sans-serif';
     document.documentElement.appendChild(host);
@@ -44,12 +45,12 @@
       @media(max-width:850px){main{grid-template-columns:1fr;overflow:auto}section{min-height:320px}}
     `});
     const app=$('div',root,{className:'app'}), head=$('header',app);
-    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.0.0'});
-    const close=$('button',head,{textContent:'Close'}); close.onclick=()=>{host.remove();host=null};
+    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.0.1'});
+    const close=$('button',head,{textContent:'Close'}); close.onclick=closeApp;
     const bar=$('div',app,{className:'tools'});
     const file=$('input',bar,{type:'file',accept:'image/*'});file.style.display='none';
     const btn=(t,fn)=>{const b=$('button',bar,{textContent:t});b.onclick=fn;return b};
-    btn('Open image',()=>file.click());
+    btn('Open image',()=>{file.value='';file.click()});
     btn('Reset view',()=>{zoom=1;ox=oy=0;render()});
     btn('Clear edits',()=>{edits.fill(0);render()});
     btn('Export TXT',()=>download(new Blob([W+'x'+H+'\n'+(colorMode?'mode=color\npalette='+palette.slice(0,colorCount).join(',')+'\n':'')+'\n'+Array.from({length:H},(_,y)=>colorMode?Array.from(grid.slice(y*W,(y+1)*W)).map(v=>String(v).padStart(2,'0')).join(' '):Array.from(grid.slice(y*W,(y+1)*W)).join('')).join('\n')],{type:'text/plain'}),name+'_grid.txt'));
@@ -67,7 +68,7 @@
     addNumber('Rows',H,1,200,v=>{H=v;N=W*H;grid=new Uint8Array(N);edits=new Int8Array(N);render()});
     const ml=$('label',bar);$('span',ml,{textContent:'Output'});
     const cm=$('select',ml);for(const [value,text] of [['binary','Binary'],['color','Multi-colour']])$('option',cm,{value,textContent:text});
-    cm.onchange=()=>{colorMode=cm.value==='color';edits.fill(0);buildPalette();render()};
+    cm.onchange=()=>{colorMode=cm.value==='color';edits.fill(0);buildPaintSelect();buildPalette();render()};
     addNumber('Colours',colorCount,1,20,v=>{colorCount=v;edits.fill(0);buildPalette();buildPaintSelect();render()});
     const paintLabel=$('label',bar);$('span',paintLabel,{textContent:'Paint colour'});
     const paintSelect=$('select',paintLabel);
@@ -86,11 +87,9 @@
     const ts=$('select',tl);for(const t of ['pan','pen','eraser'])$('option',ts,{value:t,textContent:t});
     ts.onchange=()=>tool=ts.value;
     const main=$('main',app),left=$('section',main),right=$('section',main,{id:'right'});
-    paletteUI=$('div',right);paletteUI.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:3px;max-height:95px;overflow:auto';
-    inventory=$('div',right);inventory.style.cssText='font-size:11px;color:#505968;max-height:58px;overflow:auto';
     function buildPalette(){paletteUI.replaceChildren();if(!colorMode){paletteUI.textContent='Binary output: 0 = empty, 1 = peg';return}
       for(let i=0;i<colorCount;i++){const l=$('label',paletteUI);$('span',l,{textContent:String(i+1)});const input=$('input',l,{type:'color',value:palette[i]});input.oninput=()=>{palette[i]=input.value;render()};}
-    }buildPalette();
+    }
     btn('Auto palette',()=>{if(!image||!colorMode)return;const rgba=samplePixels();const samples=[];
       for(let i=0;i<N;i++){const r=rgba[4*i],g=rgba[4*i+1],b=rgba[4*i+2];if(.299*r+.587*g+.114*b<190)samples.push([r,g,b]);}
       if(!samples.length)return;
@@ -101,9 +100,12 @@
     });
     $('h3',left,{textContent:'Image workspace — drag to pan, wheel to zoom'});
     const sw=$('div',left,{className:'surface'});source=$('canvas',sw);sourceCtx=source.getContext('2d');
-    $('h3',right,{textContent:'Binary peg output — pen / eraser to edit'});
+    $('h3',right,{textContent:'Peg output — pen / eraser to edit'});
     const pw=$('div',right,{className:'surface preview'});preview=$('canvas',pw);previewCtx=preview.getContext('2d');
+    paletteUI=$('div',right);paletteUI.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:3px;max-height:95px;overflow:auto';
+    inventory=$('div',right);inventory.style.cssText='font-size:11px;color:#505968;max-height:58px;overflow:auto';
     output=$('textarea',right,{readOnly:true,spellcheck:false});
+    buildPalette();
     status=$('footer',app,{textContent:'Open or drop an image to begin.'});
     file.onchange=()=>load(file.files[0]);
     root.addEventListener('dragover',e=>e.preventDefault());
@@ -122,7 +124,7 @@
     preview.onpointerdown=e=>{painting=true;preview.setPointerCapture(e.pointerId);paint(e)};
     preview.onpointermove=e=>{if(painting)paint(e)};
     preview.onpointerup=preview.onpointercancel=()=>painting=false;
-    const observer=new ResizeObserver(()=>resize());observer.observe(sw);observer.observe(pw);
+    resizeObserver=new ResizeObserver(()=>resize());resizeObserver.observe(sw);resizeObserver.observe(pw);
     function resize(){
       if(!host)return;
       for(const c of [source,preview]){const r=c.getBoundingClientRect();c.width=Math.max(1,Math.round(r.width));c.height=Math.max(1,Math.round(r.height))}
@@ -130,15 +132,26 @@
     }
     resize();
   }
+  function closeApp(){
+    imageLoadToken++;
+    if(resizeObserver){resizeObserver.disconnect();resizeObserver=null;}
+    if(host){host.remove();host=null;}
+    source=null;preview=null;sourceCtx=null;previewCtx=null;output=null;status=null;
+    paletteUI=null;inventory=null;
+  }
   function geometry(w,h,margin=12){
     const cell=Math.max(.01,Math.min((w-2*margin)/W,(h-2*margin)/H));
     return {cell,x:(w-W*cell)/2,y:(h-H*cell)/2,w:W*cell,h:H*cell};
   }
   function load(file){
     if(!file||!file.type.startsWith('image/'))return;
+    const token=++imageLoadToken;
+    if(status) status.textContent='Loading '+file.name+'…';
     const url=URL.createObjectURL(file),im=new Image();
-    im.onload=()=>{URL.revokeObjectURL(url);image=im;name=file.name.replace(/\.[^.]+$/,'');zoom=1;ox=oy=0;edits.fill(0);render()};
-    im.onerror=()=>URL.revokeObjectURL(url);im.src=url;
+    im.onload=()=>{URL.revokeObjectURL(url);if(token!==imageLoadToken||!host)return;
+      image=im;name=file.name.replace(/\.[^.]+$/,'');zoom=1;ox=0;oy=0;edits.fill(0);render()};
+    im.onerror=()=>{URL.revokeObjectURL(url);if(token===imageLoadToken&&status)status.textContent='Unable to decode image: '+file.name;};
+    im.src=url;
   }
   function samplePixels(){
     const sw=source.width,sh=source.height,crop=geometry(sw,sh,Math.min(sw,sh)*.04);
@@ -150,11 +163,11 @@
     return c.getImageData(0,0,W,H).data;
   }
   function render(){
-    if(!source||!preview||!host)return;
+    if(!source||!preview||!host||!status||!output||!inventory)return;
     const a=sourceCtx,b=previewCtx,sw=source.width,sh=source.height;
     a.fillStyle='#bfbfbf';a.fillRect(0,0,sw,sh);
     b.fillStyle='#f7f7f7';b.fillRect(0,0,preview.width,preview.height);
-    if(!image)return;
+    if(!image){output.value='';inventory.textContent='';return;}
     const crop=geometry(sw,sh,Math.min(sw,sh)*.04);
     const fit=Math.min(sw/image.width,sh/image.height),scale=fit*zoom;
     const dw=image.width*scale,dh=image.height*scale;

@@ -2,7 +2,9 @@
 
 Requires Pillow and a Python distribution with Tkinter.
 Optional: tkinterdnd2 for image drag-and-drop.
-"""\n\nimport os
+"""
+
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk, ImageOps, ImageDraw, ImageFilter, ImageEnhance

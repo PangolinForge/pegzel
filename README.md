@@ -2,7 +2,7 @@
 
 **Convert images into binary pegboard patterns.**
 
-Pegboard Mapper turns images into a grid of **pegs (1)** and **empty holes (0)**. The default board is **78 columns × 44 rows** (3,432 positions). Choose how the source image is interpreted, refine the result, and export a placement pattern.
+Pegboard Mapper turns images into a grid of **pegs (1)** and **empty holes (0)**. The default board is **78 columns × 44 rows** (3,432 positions), but width and height can be changed independently. Choose how the source image is interpreted, refine the result, and export a placement pattern.
 
 ## Install the browser version (recommended)
 
@@ -12,12 +12,30 @@ Pegboard Mapper turns images into a grid of **pegs (1)** and **empty holes (0)**
 
 The userscript uses a general HTTP/HTTPS match only to register a launch command. **It does not automatically take over webpages**, and image processing runs locally in your browser.
 
+### Pegboard Mapper v2.0
+
+The browser and Python desktop editions now support:
+
+- **Custom grid size:** 1–200 columns and 1–200 rows, default 78 × 44
+- **Binary mode:** 0 is empty; 1 is a peg (original behaviour)
+- **Multi-colour mode:** 0 is empty; indices **1–20** select peg colours from the user-defined palette
+- **Custom peg palettes:** colour pickers for your real peg colours; the browser also includes an automatic palette sampler
+- **Placement exports:** TXT, CSV and JSON, with a PNG peg preview
+- **Colour inventory:** the browser displays counts per colour; JSON includes colour counts
+
+In multi-colour mode, the threshold decides whether a position is **empty or filled**. A filled position is assigned the closest configured peg colour. In the browser, the **Dither** control currently affects peg occupancy rather than distributing colour error. Output from Python and browser may still differ because their processing pipelines are not identical.
+
+**JSON format:** The common 'pegzel-grid-v2' structure contains 'width', 'height', 'mode', 'palette', 'grid', and 'counts'. Rows contain integer indices, not colour names. The palette is zero-based in JSON, so **grid value 1 uses palette[0]**. 'counts[0]' is the number of empty holes.
+
 ### Browser features
 
 - Open an image or drop one into the workspace
 - Drag to position and use the scroll wheel to zoom
 - Control threshold, blur, contrast, invert, dithering, and edge preservation
 - Interpret source images using luminance, red, green, blue, or maximum RGB
+- Choose output board size, binary or multi-colour output, and a palette of up to 20 colours
+- Generate an automatic colour palette from the loaded source image
+- Export TXT, PNG, CSV or JSON
 - Draw or erase individual pegs, with manual overrides retained across processing changes
 - Preview the circular pegs and empty holes
 - Export a binary text grid and a PNG preview
@@ -41,11 +59,11 @@ For optional drag-and-drop support:
 python -m pip install tkinterdnd2
 ```
 
-Without `tkinterdnd2`, use **Open Image**. The Python desktop version supports file opening, pan and zoom, source-channel selection, thresholding, blur, contrast, optional dithering, manual pen/eraser editing and exporting TXT/PNG. The two editions are **not pixel-for-pixel equivalent**, and the browser build remains the recommended version.
+Without `tkinterdnd2`, use **Open Image**. The Python desktop version supports file opening, pan and zoom, adjustable grid dimensions, up to 20 manually selected peg colours, source-channel selection, thresholding, blur, contrast, binary dithering, manual pen/eraser editing, and exporting TXT/PNG/CSV/JSON. The Python colour mode currently assigns nearest palette colours without colour dithering. The two editions are **not pixel-for-pixel equivalent**, and the browser build remains the recommended version.
 
 ## Grid format
 
-A text export begins with a dimensions header and contains one binary row per line:
+In binary mode, a text export begins with a dimensions header and contains one binary row per line:
 
 ```text
 78x44
@@ -55,7 +73,7 @@ A text export begins with a dimensions header and contains one binary row per li
 ...
 ```
 
-`1` means a peg is present; `0` means the hole is empty.
+In binary mode, `1` means a peg is present; `0` means the hole is empty. In colour TXT files, values are separated by spaces (`00` for empty, `01`–`20` for the palette index). CSV and JSON preserve numeric indices.
 
 ## Example conversions
 

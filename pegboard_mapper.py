@@ -107,6 +107,7 @@ class PegboardApp:
         self.width_var = tk.IntVar(value=BOARD_W)
         self.height_var = tk.IntVar(value=BOARD_H)
         self.output_mode = tk.StringVar(value='Binary')
+        self.occupancy_mode = tk.StringVar(value='Full board')
         self.colours_var = tk.IntVar(value=6)
         self.paint_var = tk.IntVar(value=1)
         self.palette = DEFAULT_PALETTE.copy()
@@ -234,7 +235,11 @@ class PegboardApp:
         tk.Spinbox(config, from_=1, to=200, textvariable=self.height_var, width=5).pack(side="left")
         tk.Button(config, text="Apply dimensions", command=self.apply_dimensions).pack(side="left", padx=(5, 12))
         tk.Label(config, text="Output", bg="#e9e9e9").pack(side="left")
-        tk.OptionMenu(config, self.output_mode, "Binary", "Colour", command=lambda _: self.clear_edits()).pack(side="left")
+        tk.OptionMenu(config, self.output_mode, "Binary", "Colour", command=lambda _: self.change_output_mode()).pack(side="left")
+        tk.Label(config, text="Occupancy", bg="#e9e9e9").pack(side="left", padx=(8, 0))
+        self.occupancy_menu = tk.OptionMenu(config, self.occupancy_mode, "Full board", "Threshold", command=lambda _: self.clear_edits())
+        self.occupancy_menu.pack(side="left")
+        self.occupancy_menu.config(state="disabled")
         tk.Label(config, text="Colours", bg="#e9e9e9").pack(side="left")
         tk.Spinbox(config, from_=1, to=20, textvariable=self.colours_var, width=4).pack(side="left")
         tk.Button(config, text="Apply palette", command=self.clear_edits).pack(side="left", padx=4)
@@ -526,6 +531,10 @@ class PegboardApp:
         crop = backing.crop((int(rx1), int(ry1), int(rx2), int(ry2)))
         return crop
 
+    def change_output_mode(self):
+        self.occupancy_menu.config(state='normal' if self.output_mode.get() == 'Colour' else 'disabled')
+        self.clear_edits()
+
     def apply_dimensions(self):
         global BOARD_W, BOARD_H
         try:
@@ -580,6 +589,7 @@ class PegboardApp:
                 "width": BOARD_W,
                 "height": BOARD_H,
                 "mode": "color" if self.output_mode.get() == "Colour" else "binary",
+                "occupancy": "full" if self.output_mode.get() == "Colour" and self.occupancy_mode.get() == "Full board" else "threshold",
                 "palette": self.palette[:len(self.colour_palette())] if self.output_mode.get() == "Colour" else ["#151515"],
                 "grid": grid,
                 "counts": [sum(1 for row in grid for value in row if value == i)
@@ -606,9 +616,11 @@ class PegboardApp:
                 for x in range(BOARD_W):
                     pixel = colour_source.getpixel((x, y))
                     lum = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
-                    occupied = lum < self.threshold_var.get()
-                    if self.invert_var.get():
-                        occupied = not occupied
+                    occupied = self.occupancy_mode.get() == 'Full board'
+                    if not occupied:
+                        occupied = lum < self.threshold_var.get()
+                        if self.invert_var.get():
+                            occupied = not occupied
                     if occupied:
                         distances = [sum((pixel[c] - entry[c]) ** 2 for c in range(3)) for entry in palette]
                         row.append(distances.index(min(distances)) + 1)
@@ -668,11 +680,15 @@ class PegboardApp:
     def apply_manual_edits(self, grid):
         for (x, y), value in self.manual_edits.items():
             if 0 <= x < BOARD_W and 0 <= y < BOARD_H:
+                if self.output_mode.get() == 'Colour' and self.occupancy_mode.get() == 'Full board' and value == 0:
+                    continue
                 grid[y][x] = value
         return grid
 
     def on_preview_paint(self, event):
         tool = self.tool_var.get()
+        if tool == 'Eraser' and self.output_mode.get() == 'Colour' and self.occupancy_mode.get() == 'Full board':
+            return
         if tool == "Pan" or self.original_image is None:
             return
         x = int((event.x - PREVIEW_MARGIN) / PREVIEW_CELL)

@@ -1,5 +1,16 @@
 # Changelog
 
+## Browser — v2.0.0
+- Custom 1–200 column and row board sizes.
+- Binary or multi-colour mapping with up to 20 editable palette colours.
+- Automatic colour palette generation in the browser.
+- Per-colour peg inventory and CSV/JSON exports.
+
+## Python — v2.0.0
+- Custom board dimensions and 1–20 colour mapping.
+- Colour picker, editable paint index and CSV/JSON exports.
+- Preserves original binary output as the default.
+
 ## Browser — v1.9.2
 - Added GitHub update/download metadata for Tampermonkey auto-update checks.
 

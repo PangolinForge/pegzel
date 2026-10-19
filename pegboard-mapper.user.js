@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pegboard Mapper — by Pegzel
 // @namespace    pegzel
-// @version      2.0.2
+// @version      2.1.0
 // @description  Image-to-pegboard converter and binary pegboard pattern generator.
 // @match        *://*/*
 // @grant        GM_registerMenuCommand
@@ -16,6 +16,7 @@
   let host, image = null, name = 'pegzel', zoom = 1, ox = 0, oy = 0, dragging = false;
   let edits = new Int8Array(N), grid = new Uint8Array(N), painting = false, tool = 'pan';
   let colorMode = false, colorCount = 6, paintIndex = 1, paletteUI, inventory;
+  let occupancyMode = 'full';
   const palette = ['#151515','#ffffff','#d62828','#2673c9','#f4ca39','#329a58','#ec8531','#8654b3','#d581ac','#845b3a','#5ab7af','#949aa0','#9aaa3b','#b84660','#424b91','#69c4a8','#e1b57a','#a55033','#5b7343','#ddddda'];
   const rgb = hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
   let source, preview, sourceCtx, previewCtx, output, status;
@@ -45,7 +46,7 @@
       @media(max-width:850px){main{grid-template-columns:1fr;overflow:auto}section{min-height:320px}}
     `});
     const app=$('div',root,{className:'app'}), head=$('header',app);
-    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.0.2'});
+    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.1.0'});
     const close=$('button',head,{textContent:'Close'}); close.onclick=closeApp;
     const bar=$('div',app,{className:'tools'});
     const file=$('input',bar,{type:'file',accept:'image/*'});file.style.display='none';
@@ -53,10 +54,10 @@
     btn('Open image',()=>{file.value='';file.click()});
     btn('Reset view',()=>{zoom=1;ox=oy=0;render()});
     btn('Clear edits',()=>{edits.fill(0);render()});
-    btn('Export TXT',()=>download(new Blob([W+'x'+H+'\n'+(colorMode?'mode=color\npalette='+palette.slice(0,colorCount).join(',')+'\n':'')+'\n'+Array.from({length:H},(_,y)=>colorMode?Array.from(grid.slice(y*W,(y+1)*W)).map(v=>String(v).padStart(2,'0')).join(' '):Array.from(grid.slice(y*W,(y+1)*W)).join('')).join('\n')],{type:'text/plain'}),name+'_grid.txt'));
+    btn('Export TXT',()=>download(new Blob([W+'x'+H+'\n'+(colorMode?'mode=color\noccupancy='+occupancyMode+'\npalette='+palette.slice(0,colorCount).join(',')+'\n':'')+'\n'+Array.from({length:H},(_,y)=>colorMode?Array.from(grid.slice(y*W,(y+1)*W)).map(v=>String(v).padStart(2,'0')).join(' '):Array.from(grid.slice(y*W,(y+1)*W)).join('')).join('\n')],{type:'text/plain'}),name+'_grid.txt'));
     btn('Export PNG',()=>preview.toBlob(b=>b&&download(b,name+'_preview.png')));
     btn('Export CSV',()=>download(new Blob([Array.from({length:H},(_,y)=>Array.from(grid.slice(y*W,(y+1)*W)).join(',')).join('\n')],{type:'text/csv'}),name+'_grid.csv'));
-    btn('Export JSON',()=>{const rows=Array.from({length:H},(_,y)=>Array.from(grid.slice(y*W,(y+1)*W)));const data={format:'pegzel-grid-v2',width:W,height:H,mode:colorMode?'color':'binary',palette:colorMode?palette.slice(0,colorCount):['#151515'],grid:rows,counts:Array.from({length:(colorMode?colorCount:1)+1},(_,i)=>Array.from(grid).filter(x=>x===i).length)};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),name+'_grid.json')});
+    btn('Export JSON',()=>{const rows=Array.from({length:H},(_,y)=>Array.from(grid.slice(y*W,(y+1)*W)));const data={format:'pegzel-grid-v2',width:W,height:H,mode:colorMode?'color':'binary',occupancy:colorMode?occupancyMode:'threshold',palette:colorMode?palette.slice(0,colorCount):['#151515'],grid:rows,counts:Array.from({length:(colorMode?colorCount:1)+1},(_,i)=>Array.from(grid).filter(x=>x===i).length)};download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),name+'_grid.json')});
     function slider(key,min,max,step,value){
       const l=$('label',bar);$('span',l,{textContent:key});
       const v=$('input',l,{type:'range',min,max,step,value}); const read=$('span',l,{textContent:String(value)});
@@ -68,7 +69,13 @@
     addNumber('Rows',H,1,200,v=>{H=v;N=W*H;grid=new Uint8Array(N);edits=new Int8Array(N);render()});
     const ml=$('label',bar);$('span',ml,{textContent:'Output'});
     const cm=$('select',ml);for(const [value,text] of [['binary','Binary'],['color','Multi-colour']])$('option',cm,{value,textContent:text});
-    cm.onchange=()=>{colorMode=cm.value==='color';edits.fill(0);buildPaintSelect();buildPalette();render()};
+    cm.onchange=()=>{colorMode=cm.value==='color';edits.fill(0);occupancyLabel.style.display=colorMode?'inline-flex':'none';buildPaintSelect();buildPalette();render()};
+    const occupancyLabel=$('label',bar);$('span',occupancyLabel,{textContent:'Occupancy'});
+    const occupancySelect=$('select',occupancyLabel);
+    for(const [value,text] of [['full','Full board'],['threshold','Threshold']])$('option',occupancySelect,{value,textContent:text});
+    occupancySelect.value=occupancyMode;
+    occupancyLabel.style.display='none';
+    occupancySelect.onchange=()=>{occupancyMode=occupancySelect.value;edits.fill(0);render();};
     addNumber('Colours',colorCount,1,20,v=>{colorCount=v;edits.fill(0);buildPalette();buildPaintSelect();render()});
     const paintLabel=$('label',bar);$('span',paintLabel,{textContent:'Paint colour'});
     const paintSelect=$('select',paintLabel);
@@ -91,7 +98,7 @@
       for(let i=0;i<colorCount;i++){const l=$('label',paletteUI);$('span',l,{textContent:String(i+1)});const input=$('input',l,{type:'color',value:palette[i]});input.oninput=()=>{palette[i]=input.value;render()};}
     }
     btn('Auto palette',()=>{if(!image||!colorMode)return;const rgba=samplePixels();const samples=[];
-      for(let i=0;i<N;i++){const r=rgba[4*i],g=rgba[4*i+1],b=rgba[4*i+2];if(.299*r+.587*g+.114*b<190)samples.push([r,g,b]);}
+      for(let i=0;i<N;i++){const r=rgba[4*i],g=rgba[4*i+1],b=rgba[4*i+2];if(occupancyMode==='full'||.299*r+.587*g+.114*b<190)samples.push([r,g,b]);}
       if(!samples.length)return;
       let centers=Array.from({length:colorCount},(_,j)=>samples[Math.floor((j+.5)*samples.length/colorCount)%samples.length].slice());
       const nearest=p=>{let best=0,dist=Infinity;for(let j=0;j<centers.length;j++){const q=centers[j],d=(p[0]-q[0])**2+(p[1]-q[1])**2+(p[2]-q[2])**2;if(d<dist){best=j;dist=d}}return best};
@@ -122,7 +129,7 @@
       const g=geometry(preview.width,preview.height,12),x=Math.floor((px-g.x)/g.cell),y=Math.floor((py-g.y)/g.cell);
       return x>=0&&x<W&&y>=0&&y<H?y*W+x:-1;
     }
-    function paint(e){if(!image||tool==='pan')return;const i=cellAt(e);if(i<0)return;edits[i]=tool==='pen'?(colorMode?paintIndex:1):-1;render()};
+    function paint(e){if(!image||tool==='pan')return;if(colorMode&&occupancyMode==='full'&&tool==='eraser')return;const i=cellAt(e);if(i<0)return;edits[i]=tool==='pen'?(colorMode?paintIndex:1):-1;render()};
     preview.onpointerdown=e=>{painting=true;preview.setPointerCapture(e.pointerId);paint(e)};
     preview.onpointermove=e=>{if(painting)paint(e)};
     const stopPainting=()=>{painting=false;};
@@ -224,13 +231,15 @@
     const working=vals.slice();
     for(let y=0;y<H;y++){
       for(let x=0;x<W;x++){
-      const i=y*W+x,old=working[i],peg=old<threshold;let result=Number(peg);
-      if(colorMode && peg){
+      const i=y*W+x,old=working[i],peg=old<threshold;
+      const occupied=colorMode&&occupancyMode==='full'?true:peg;
+      let result=Number(occupied);
+      if(colorMode && occupied){
         let nearest=1,best=Infinity;const p=[rgba[i*4],rgba[i*4+1],rgba[i*4+2]];
         for(let j=0;j<colorCount;j++){const q=rgb(palette[j]);let d=0;for(let k=0;k<3;k++)d+=(p[k]-q[k])**2;if(d<best){best=d;nearest=j+1}}
         result=nearest;
       }
-      grid[i]=edits[i]>0?edits[i]:edits[i]===-1?0:result;
+      grid[i]=edits[i]>0?edits[i]:edits[i]===-1&&!(colorMode&&occupancyMode==='full')?0:result;
       if(ui.Dither.checked){const err=old-(peg?0:255);
         if(x+1<W)working[i+1]+=err*7/16;
         if(y+1<H){if(x>0)working[i+W-1]+=err*3/16;working[i+W]+=err*5/16;if(x+1<W)working[i+W+1]+=err/16}
@@ -249,7 +258,7 @@
     }
     output.value=Array.from({length:H},(_,y)=>colorMode?Array.from(grid.slice(y*W,(y+1)*W)).map(v=>String(v).padStart(2,'0')).join(' '):Array.from(grid.slice(y*W,(y+1)*W)).join('')).join('\n');
     const counts=Array.from({length:(colorMode?colorCount:1)+1},(_,j)=>Array.from(grid).filter(v=>v===j).length);
-    inventory.textContent='Empty: '+counts[0]+' • '+counts.slice(1).map((v,j)=>(colorMode?'Colour '+(j+1):'Pegs')+': '+v).join(' • ');
+    inventory.textContent=(colorMode&&occupancyMode==='full'?'Full board • ':'')+'Empty: '+counts[0]+' • '+counts.slice(1).map((v,j)=>(colorMode?'Colour '+(j+1):'Pegs')+': '+v).join(' • ');
     status.textContent=`Pegs: ${count} / ${N} (${(100*count/N).toFixed(1)}%) · Zoom: ${zoom.toFixed(2)}× · Channel: ${channel}`;
   }
   function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}

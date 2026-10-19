@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.1 — Browser and Python
+- Add multi-colour occupancy: **Full board** or **Threshold**.
+- Full board is the default for multi-colour and fills every grid position with a palette colour.
+- Maintain threshold-controlled sparse occupancy and binary-mode defaults.
+- Preserve full-board coverage by ignoring eraser edits in that mode.
+- Include `occupancy` in the JSON pattern export; browser TXT also includes occupancy metadata.
+- Browser automatic palette samples all grid cells in full-board mode.
+
 ## Browser — v2.0.2
 - Reworked assignment-only callbacks and nested grid-processing loops into explicit blocks to improve lint compatibility.
 - No intended change to conversion calculations or the Tampermonkey menu launch sequence.

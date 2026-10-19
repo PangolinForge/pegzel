@@ -1,5 +1,12 @@
 # Changelog
 
+## Browser — v2.0.1
+- Rebuild colour paint selector when switching binary/colour modes.
+- Initialize the palette and inventory after the output panel is created.
+- Show image load errors and ignore stale image-load callbacks.
+- Allow repeated selection of the same image file.
+- Disconnect resize listeners and invalidate pending image loads when closing.
+
 ## Browser — v2.0.0
 - Custom 1–200 column and row board sizes.
 - Binary or multi-colour mapping with up to 20 editable palette colours.

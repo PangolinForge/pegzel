@@ -1,0 +1,24 @@
+name: Python syntax check
+
+on:
+  push:
+    paths:
+      - 'pegboard_mapper.py'
+      - 'requirements.txt'
+      - '.github/workflows/python-check.yml'
+  pull_request:
+    paths:
+      - 'pegboard_mapper.py'
+      - 'requirements.txt'
+      - '.github/workflows/python-check.yml'
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check syntax
+        run: python -m py_compile pegboard_mapper.py

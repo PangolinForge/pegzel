@@ -1,5 +1,9 @@
 # Changelog
 
+## Browser — v2.1.1
+- Remove repository-name attribution from userscript title and application header.
+- Preserve existing script namespace, update links and JSON format identifier for compatibility.
+
 ## v2.1 — Browser and Python
 - Add multi-colour occupancy: **Full board** or **Threshold**.
 - Full board is the default for multi-colour and fills every grid position with a palette colour.
@@ -34,7 +38,7 @@
 - Added GitHub update/download metadata for Tampermonkey auto-update checks.
 
 ## Browser — v1.9.1
-- Renamed the application **Pegboard Mapper — by Pegzel**.
+- Standardized the application name as **Pegboard Mapper**.
 - Retained explicit Tampermonkey menu-based launch, avoiding automatic website takeovers.
 - Channel-aware binary conversion, preview edits and TXT/PNG exports.
 

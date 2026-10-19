@@ -1,14 +1,16 @@
-name: Python syntax check
+name: Source syntax check
 
 on:
   push:
     paths:
       - 'pegboard_mapper.py'
+      - 'pegboard-mapper.user.js'
       - 'requirements.txt'
       - '.github/workflows/python-check.yml'
   pull_request:
     paths:
       - 'pegboard_mapper.py'
+      - 'pegboard-mapper.user.js'
       - 'requirements.txt'
       - '.github/workflows/python-check.yml'
 
@@ -20,5 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Check syntax
+      - name: Check Python syntax
         run: python -m py_compile pegboard_mapper.py
+      - name: Check userscript JavaScript syntax
+        run: node --check pegboard-mapper.user.js

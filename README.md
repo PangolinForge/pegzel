@@ -61,12 +61,9 @@ A text export begins with a dimensions header and contains one binary row per li
 
 These examples were created with **Pegboard Mapper**, reinterpreting familiar imagery as arrangements of binary pegs on a **78 × 44** grid. They are outputs of the mapping process, **not copies of the source artwork**.
 
-<!-- Upload the three PNG screenshots to examples/ with the filenames below.
-     Once the files are present, the gallery will automatically display. -->
-
 | Barack Obama — HOPE interpretation | Mario & Yoshi interpretation | Mario pixel-art interpretation |
 |:---:|:---:|:---:|
-| ![Binary pegboard interpretation inspired by the Barack Obama HOPE poster](examples/obama-hope-pegboard.png) | ![Mario and Yoshi interpreted as a binary pegboard pattern](examples/mario-yoshi-pegboard.png) | ![Mario pixel art interpreted as a binary pegboard pattern](examples/mario-pegboard.png) |
+| ![Binary pegboard interpretation inspired by the Barack Obama HOPE poster](obama-hope-pegboard.png) | ![Mario and Yoshi interpreted as a binary pegboard pattern](mario-yoshi-pegboard.png) | ![Mario pixel art interpreted as a binary pegboard pattern](mario-pegboard.png) |
 | Portrait source converted into peg/no-peg positions | Familiar game imagery converted into binary dots | A further example of pixel-art simplification |
 
 ### Source artwork and characters

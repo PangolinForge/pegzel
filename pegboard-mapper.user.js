@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Pegboard Mapper — by Pegzel
+// @name         Pegboard Mapper
 // @namespace    pegzel
-// @version      2.1.0
+// @version      2.1.1
 // @description  Image-to-pegboard converter and binary pegboard pattern generator.
 // @match        *://*/*
 // @grant        GM_registerMenuCommand
@@ -13,7 +13,7 @@
 (() => {
   'use strict';
   let W = 78, H = 44, N = W * H;
-  let host, image = null, name = 'pegzel', zoom = 1, ox = 0, oy = 0, dragging = false;
+  let host, image = null, name = 'pegboard', zoom = 1, ox = 0, oy = 0, dragging = false;
   let edits = new Int8Array(N), grid = new Uint8Array(N), painting = false, tool = 'pan';
   let colorMode = false, colorCount = 6, paintIndex = 1, paletteUI, inventory;
   let occupancyMode = 'full';
@@ -46,7 +46,7 @@
       @media(max-width:850px){main{grid-template-columns:1fr;overflow:auto}section{min-height:320px}}
     `});
     const app=$('div',root,{className:'app'}), head=$('header',app);
-    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.1.0'});
+    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'v2.1.1'});
     const close=$('button',head,{textContent:'Close'}); close.onclick=closeApp;
     const bar=$('div',app,{className:'tools'});
     const file=$('input',bar,{type:'file',accept:'image/*'});file.style.display='none';

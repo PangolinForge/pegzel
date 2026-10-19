@@ -1,5 +1,9 @@
 # Changelog
 
+## Browser — v2.0.2
+- Reworked assignment-only callbacks and nested grid-processing loops into explicit blocks to improve lint compatibility.
+- No intended change to conversion calculations or the Tampermonkey menu launch sequence.
+
 ## Browser — v2.0.1
 - Rebuild colour paint selector when switching binary/colour modes.
 - Initialize the palette and inventory after the output panel is created.

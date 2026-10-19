@@ -1,4 +1,4 @@
-"""Pegboard Mapper by Pegzel — standalone Python desktop edition.
+"""Pegboard Mapper — standalone Python desktop edition.
 
 Requires Pillow and a Python distribution with Tkinter.
 Optional: tkinterdnd2 for image drag-and-drop.
@@ -77,7 +77,7 @@ def parse_dropped_files(data: str):
 class PegboardApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Pegboard Mapper — by Pegzel")
+        self.root.title("Pegboard Mapper")
 
         self.original_image = None
         self.tk_display_image = None

@@ -18,14 +18,14 @@ The browser and Python desktop editions now support:
 
 - **Custom grid size:** 1–200 columns and 1–200 rows, default 78 × 44
 - **Binary mode:** 0 is empty; 1 is a peg (original behaviour)
-- **Multi-colour mode:** 0 is empty; indices **1–20** select peg colours from the user-defined palette
+- **Multi-colour mode:** indexes **1–20** select peg colours from the user-defined palette; choose **Full board** (default, no empty holes) or **Threshold** (0 indicates an empty hole)
 - **Custom peg palettes:** colour pickers for your real peg colours; the browser also includes an automatic palette sampler
 - **Placement exports:** TXT, CSV and JSON, with a PNG peg preview
 - **Colour inventory:** the browser displays counts per colour; JSON includes colour counts
 
-In multi-colour mode, the threshold decides whether a position is **empty or filled**. A filled position is assigned the closest configured peg colour. In the browser, the **Dither** control currently affects peg occupancy rather than distributing colour error. Output from Python and browser may still differ because their processing pipelines are not identical.
+In multi-colour **Full board** mode, every position gets the nearest palette colour, with exactly width × height pegs. Multi-colour **Threshold** mode uses the threshold to decide whether each cell is empty or filled. A filled position gets its closest configured peg colour. In Full board mode the eraser is disabled to preserve complete coverage. In the browser, the **Dither** control currently affects peg occupancy rather than distributing colour error. Output from Python and browser may still differ because their processing pipelines are not identical.
 
-**JSON format:** The common 'pegzel-grid-v2' structure contains 'width', 'height', 'mode', 'palette', 'grid', and 'counts'. Rows contain integer indices, not colour names. The palette is zero-based in JSON, so **grid value 1 uses palette[0]**. 'counts[0]' is the number of empty holes.
+**JSON format:** The common 'pegzel-grid-v2' structure contains 'width', 'height', 'mode', 'palette', 'grid', and 'counts'. Rows contain integer indices, not colour names. The palette is zero-based in JSON, so **grid value 1 uses palette[0]**. JSON includes `occupancy` (`full` or `threshold`) for v2.1 exports. 'counts[0]' is the number of empty holes.
 
 ### Browser features
 

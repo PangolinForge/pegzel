@@ -57,11 +57,26 @@ A text export begins with a dimensions header and contains one binary row per li
 
 `1` means a peg is present; `0` means the hole is empty.
 
-## Example work
+## Example conversions
 
-The project originated from experimenting with images and a binary pegboard: a portrait converted using a colour channel, and pixel-art figures converted using different zoom and threshold settings. Screenshots from these experiments can be added once their distribution rights have been reviewed.
+These examples were created with **Pegboard Mapper**, reinterpreting familiar imagery as arrangements of binary pegs on a **78 × 44** grid. They are outputs of the mapping process, **not copies of the source artwork**.
 
-**Artwork credits:** Shepard Fairey's *Barack Obama “HOPE”* artwork (2008) derives from a Mannie Garcia photograph. Mario, Luigi and Yoshi are Nintendo characters. References to these works do not imply sponsorship, ownership, or a licence to redistribute their original imagery.
+<!-- Upload the three PNG screenshots to examples/ with the filenames below.
+     Once the files are present, the gallery will automatically display. -->
+
+| Barack Obama — HOPE interpretation | Mario & Yoshi interpretation | Mario pixel-art interpretation |
+|:---:|:---:|:---:|
+| ![Binary pegboard interpretation inspired by the Barack Obama HOPE poster](examples/obama-hope-pegboard.png) | ![Mario and Yoshi interpreted as a binary pegboard pattern](examples/mario-yoshi-pegboard.png) | ![Mario pixel art interpreted as a binary pegboard pattern](examples/mario-pegboard.png) |
+| Portrait source converted into peg/no-peg positions | Familiar game imagery converted into binary dots | A further example of pixel-art simplification |
+
+### Source artwork and characters
+
+These screenshots demonstrate **Pegboard Mapper's generated binary interpretations**. The underlying source imagery and recognisable characters are associated with their respective rights holders:
+
+- **Barack Obama “HOPE”** — original poster artwork by Shepard Fairey (2008), based on a photograph by Mannie Garcia.
+- **Mario, Luigi and Yoshi** — characters associated with Nintendo. The specific source-sprite illustrators have not been identified.
+
+The Pegzel project is independent and is not affiliated with or endorsed by any of these rights holders. Its software licence does not grant rights in third-party characters or source imagery.
 
 ## Project and releases
 

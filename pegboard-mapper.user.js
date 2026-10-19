@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pegboard Mapper — by Pegzel
 // @namespace    pegzel
-// @version      2.0.1
+// @version      2.0.2
 // @description  Image-to-pegboard converter and binary pegboard pattern generator.
 // @match        *://*/*
 // @grant        GM_registerMenuCommand
@@ -45,7 +45,7 @@
       @media(max-width:850px){main{grid-template-columns:1fr;overflow:auto}section{min-height:320px}}
     `});
     const app=$('div',root,{className:'app'}), head=$('header',app);
-    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.0.1'});
+    $('strong',head,{textContent:'Pegboard Mapper'}); $('span',head,{textContent:'by Pegzel • v2.0.2'});
     const close=$('button',head,{textContent:'Close'}); close.onclick=closeApp;
     const bar=$('div',app,{className:'tools'});
     const file=$('input',bar,{type:'file',accept:'image/*'});file.style.display='none';
@@ -73,7 +73,7 @@
     const paintLabel=$('label',bar);$('span',paintLabel,{textContent:'Paint colour'});
     const paintSelect=$('select',paintLabel);
     function buildPaintSelect(){paintSelect.replaceChildren();for(let i=1;i<=(colorMode?colorCount:1);i++)$('option',paintSelect,{value:String(i),textContent:String(i)});paintIndex=1;paintSelect.value='1'}
-    paintSelect.onchange=()=>paintIndex=Number(paintSelect.value);
+    paintSelect.onchange=()=>{paintIndex=Number(paintSelect.value);};
     buildPaintSelect();
     const modeLabel=$('label',bar);$('span',modeLabel,{textContent:'Channel'});
     const select=$('select',modeLabel);
@@ -85,7 +85,7 @@
     }
     const tl=$('label',bar);$('span',tl,{textContent:'Tool'});
     const ts=$('select',tl);for(const t of ['pan','pen','eraser'])$('option',ts,{value:t,textContent:t});
-    ts.onchange=()=>tool=ts.value;
+    ts.onchange=()=>{tool=ts.value;};
     const main=$('main',app),left=$('section',main),right=$('section',main,{id:'right'});
     function buildPalette(){paletteUI.replaceChildren();if(!colorMode){paletteUI.textContent='Binary output: 0 = empty, 1 = peg';return}
       for(let i=0;i<colorCount;i++){const l=$('label',paletteUI);$('span',l,{textContent:String(i+1)});const input=$('input',l,{type:'color',value:palette[i]});input.oninput=()=>{palette[i]=input.value;render()};}
@@ -96,7 +96,7 @@
       let centers=Array.from({length:colorCount},(_,j)=>samples[Math.floor((j+.5)*samples.length/colorCount)%samples.length].slice());
       const nearest=p=>{let best=0,dist=Infinity;for(let j=0;j<centers.length;j++){const q=centers[j],d=(p[0]-q[0])**2+(p[1]-q[1])**2+(p[2]-q[2])**2;if(d<dist){best=j;dist=d}}return best};
       for(let step=0;step<9;step++){const sums=Array.from({length:colorCount},()=>[0,0,0,0]);for(const p of samples){const j=nearest(p);for(let k=0;k<3;k++)sums[j][k]+=p[k];sums[j][3]++}for(let j=0;j<colorCount;j++)if(sums[j][3])for(let k=0;k<3;k++)centers[j][k]=sums[j][k]/sums[j][3];}
-      centers.forEach((p,i)=>palette[i]='#'+p.map(c=>clamp(Math.round(c),0,255).toString(16).padStart(2,'0')).join(''));buildPalette();render();
+      centers.forEach((p,i)=>{palette[i]='#'+p.map(c=>clamp(Math.round(c),0,255).toString(16).padStart(2,'0')).join('');});buildPalette();render();
     });
     $('h3',left,{textContent:'Image workspace — drag to pan, wheel to zoom'});
     const sw=$('div',left,{className:'surface'});source=$('canvas',sw);sourceCtx=source.getContext('2d');
@@ -113,7 +113,9 @@
     function pointer(e){const r=source.getBoundingClientRect();return {x:(e.clientX-r.left)*source.width/r.width,y:(e.clientY-r.top)*source.height/r.height}}
     source.onpointerdown=e=>{if(!image)return;dragging=true;source.setPointerCapture(e.pointerId);const p=pointer(e);source._last=p};
     source.onpointermove=e=>{if(!dragging)return;const p=pointer(e);ox+=p.x-source._last.x;oy+=p.y-source._last.y;source._last=p;render()};
-    source.onpointerup=source.onpointercancel=()=>dragging=false;
+    const stopDragging=()=>{dragging=false;};
+    source.onpointerup=stopDragging;
+    source.onpointercancel=stopDragging;
     source.onwheel=e=>{if(!image)return;e.preventDefault();const p=pointer(e),f=e.deltaY<0?1.1:1/1.1,old=zoom;zoom=clamp(zoom*f,.15,15);const k=zoom/old;ox=(ox-(p.x-source.width/2))*k+(p.x-source.width/2);oy=(oy-(p.y-source.height/2))*k+(p.y-source.height/2);render()};
     function cellAt(e){
       const r=preview.getBoundingClientRect(),px=(e.clientX-r.left)*preview.width/r.width,py=(e.clientY-r.top)*preview.height/r.height;
@@ -123,7 +125,9 @@
     function paint(e){if(!image||tool==='pan')return;const i=cellAt(e);if(i<0)return;edits[i]=tool==='pen'?(colorMode?paintIndex:1):-1;render()};
     preview.onpointerdown=e=>{painting=true;preview.setPointerCapture(e.pointerId);paint(e)};
     preview.onpointermove=e=>{if(painting)paint(e)};
-    preview.onpointerup=preview.onpointercancel=()=>painting=false;
+    const stopPainting=()=>{painting=false;};
+    preview.onpointerup=stopPainting;
+    preview.onpointercancel=stopPainting;
     resizeObserver=new ResizeObserver(()=>resize());resizeObserver.observe(sw);resizeObserver.observe(pw);
     function resize(){
       if(!host)return;
@@ -185,24 +189,41 @@
     }
     const blur=+ui.Blur.value;
     if(blur>0){const radius=Math.ceil(blur),copy=vals.slice();
-      for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-        let sum=0,weight=0;for(let yy=Math.max(0,y-radius);yy<=Math.min(H-1,y+radius);yy++)for(let xx=Math.max(0,x-radius);xx<=Math.min(W-1,x+radius);xx++){
-          const d=(x-xx)**2+(y-yy)**2,w=Math.exp(-d/(2*blur*blur));sum+=copy[yy*W+xx]*w;weight+=w;
-        }vals[y*W+x]=sum/weight;
+      for(let y=0;y<H;y++){
+        for(let x=0;x<W;x++){
+          let sum=0,weight=0;
+          for(let yy=Math.max(0,y-radius);yy<=Math.min(H-1,y+radius);yy++){
+            for(let xx=Math.max(0,x-radius);xx<=Math.min(W-1,x+radius);xx++){
+              const d=(x-xx)**2+(y-yy)**2,w=Math.exp(-d/(2*blur*blur));
+              sum+=copy[yy*W+xx]*w;weight+=w;
+            }
+          }
+          vals[y*W+x]=sum/weight;
+        }
       }
     }
     const contrast=+ui.Contrast.value;for(let i=0;i<N;i++)vals[i]=clamp((vals[i]-128)*contrast+128,0,255);
     if(ui['Edge preserve'].checked){const copy=vals.slice();
-      for(let y=0;y<H;y++)for(let x=0;x<W;x++){const center=copy[y*W+x];let sum=0,ws=0;
-        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx<0||xx>=W||yy<0||yy>=H)continue;
-          const v=copy[yy*W+xx],w=Math.exp(-(dx*dx+dy*dy)/2)*Math.exp(-((v-center)**2)/(2*20*20));sum+=v*w;ws+=w;
-        }vals[y*W+x]=sum/ws;
+      for(let y=0;y<H;y++){
+        for(let x=0;x<W;x++){
+          const center=copy[y*W+x];let sum=0,ws=0;
+          for(let dy=-1;dy<=1;dy++){
+            for(let dx=-1;dx<=1;dx++){
+              const xx=x+dx,yy=y+dy;
+              if(xx<0||xx>=W||yy<0||yy>=H)continue;
+              const v=copy[yy*W+xx],w=Math.exp(-(dx*dx+dy*dy)/2)*Math.exp(-((v-center)**2)/(2*20*20));
+              sum+=v*w;ws+=w;
+            }
+          }
+          vals[y*W+x]=sum/ws;
+        }
       }
     }
     let min=255,max=0;for(const v of vals){min=Math.min(min,v);max=Math.max(max,v)}
     const threshold=min+(max-min)*(+ui.Threshold.value/100);
     const working=vals.slice();
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
       const i=y*W+x,old=working[i],peg=old<threshold;let result=Number(peg);
       if(colorMode && peg){
         let nearest=1,best=Infinity;const p=[rgba[i*4],rgba[i*4+1],rgba[i*4+2]];
@@ -215,13 +236,16 @@
         if(y+1<H){if(x>0)working[i+W-1]+=err*3/16;working[i+W]+=err*5/16;if(x+1<W)working[i+W+1]+=err/16}
       }
     }
+    }
     const g=geometry(preview.width,preview.height,12),radius=g.cell*.39;
     let count=0;
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
       const i=y*W+x,cx=g.x+(x+.5)*g.cell,cy=g.y+(y+.5)*g.cell;
       if(ui['Show holes'].checked){b.beginPath();b.arc(cx,cy,radius,0,Math.PI*2);b.strokeStyle='#d2d2d2';b.lineWidth=.6;b.stroke()}
       if(grid[i]){count++;b.beginPath();b.arc(cx,cy,radius,0,Math.PI*2);b.fillStyle=colorMode?palette[grid[i]-1]:'#151515';b.fill()}
       if(edits[i]){b.beginPath();b.arc(cx,cy,radius*.35,0,Math.PI*2);b.fillStyle=edits[i]===1?'#1684ff':'#ff4b39';b.fill()}
+    }
     }
     output.value=Array.from({length:H},(_,y)=>colorMode?Array.from(grid.slice(y*W,(y+1)*W)).map(v=>String(v).padStart(2,'0')).join(' '):Array.from(grid.slice(y*W,(y+1)*W)).join('')).join('\n');
     const counts=Array.from({length:(colorMode?colorCount:1)+1},(_,j)=>Array.from(grid).filter(v=>v===j).length);
